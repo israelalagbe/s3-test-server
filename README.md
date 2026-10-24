@@ -153,29 +153,30 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
 ```js
 const server = new S3TestServer({
   // server
-  address: 'localhost',
-  port: 4568,
-  key: fs.readFileSync('./key.pem'), // with cert: serves HTTPS
-  cert: fs.readFileSync('./cert.pem'),
-  silent: false,
+  address: 'localhost', // hostname or IP the HTTP server binds to
+  port: 4568, // port to listen on; 0 picks a free ephemeral port
+  key: fs.readFileSync('./key.pem'), // TLS private key; with cert, serves HTTPS
+  cert: fs.readFileSync('./cert.pem'), // TLS certificate for HTTPS
+  silent: false, // true suppresses all request/startup logging
 
   // storage
-  directory: './s3-data',
-  resetOnStart: false,
-  resetOnClose: false,
+  directory: './s3-data', // where buckets and objects live; omit for a temp dir
+  resetOnStart: false, // true clears the data directory on every run()
+  resetOnClose: false, // true deletes all bucket data on close()
   configureBuckets: [
-    { name: 'assets', acl: 'public-read' },
-    { name: 'site', configs: [corsXml, websiteXml, policyJson] },
+    // buckets created before the server starts
+    { name: 'assets', acl: 'public-read' }, // canned ACL for this bucket
+    { name: 'site', configs: [corsXml, websiteXml, policyJson] }, // raw configs
   ],
 
   // credentials and addressing
-  accessKeyId: 'S3TEST',
-  secretAccessKey: 'S3TEST',
-  region: 'eu-west-1', // set explicitly: other regions are rejected
-  defaultBucketAcl: 'private',
-  vhostBuckets: true,
-  serviceEndpoint: 'amazonaws.com',
-  allowMismatchedSignatures: false,
+  accessKeyId: 'S3TEST', // access key id requests must be signed with
+  secretAccessKey: 'S3TEST', // matching secret for SigV2/SigV4 signatures
+  region: 'eu-west-1', // pins the region: other regions are rejected
+  defaultBucketAcl: 'private', // ACL for buckets created without one
+  vhostBuckets: true, // resolve bucket.localhost-style Host headers
+  serviceEndpoint: 'amazonaws.com', // root domain for virtual-host addressing
+  allowMismatchedSignatures: false, // true accepts wrong (but well-formed) signatures
 });
 ```
 
