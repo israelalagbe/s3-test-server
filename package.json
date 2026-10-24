@@ -17,7 +17,7 @@
   },
   "scripts": {
     "start": "node bin/s3-test-server.js",
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "keywords": [
     "s3",
