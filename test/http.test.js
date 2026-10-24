@@ -123,7 +123,10 @@ test('simple CORS headers are set on matching GET requests', async () => {
     path: `/${BUCKET}/index.html?list-type-not-api`,
     headers: { Origin: 'https://allowed.example' },
   });
-  assert.strictEqual(res.headers['access-control-allow-origin'], 'https://allowed.example');
+  assert.strictEqual(
+    res.headers['access-control-allow-origin'],
+    'https://allowed.example'
+  );
   assert.match(res.headers['access-control-expose-headers'], /ETag/);
 });
 
@@ -158,9 +161,16 @@ test('browser-style form POST uploads an object', async () => {
   form.append('key', 'uploads/${filename}');
   form.append('Content-Type', 'text/plain');
   form.append('success_action_status', '201');
-  form.append('file', new Blob(['posted content'], { type: 'text/plain' }), 'posted.txt');
+  form.append(
+    'file',
+    new Blob(['posted content'], { type: 'text/plain' }),
+    'posted.txt'
+  );
 
-  const res = await fetch(`${ctx.endpoint}/${BUCKET}`, { method: 'POST', body: form });
+  const res = await fetch(`${ctx.endpoint}/${BUCKET}`, {
+    method: 'POST',
+    body: form,
+  });
   assert.strictEqual(res.status, 201);
   const xml = await res.text();
   assert.match(xml, /<PostResponse[\s>]/);

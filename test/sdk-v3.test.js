@@ -58,7 +58,9 @@ test('head bucket / list buckets / bucket location', async () => {
   await client.send(new HeadBucketCommand({ Bucket: BUCKET }));
   const list = await client.send(new ListBucketsCommand({}));
   assert.ok(list.Buckets.some((bucket) => bucket.Name === BUCKET));
-  const location = await client.send(new GetBucketLocationCommand({ Bucket: BUCKET }));
+  const location = await client.send(
+    new GetBucketLocationCommand({ Bucket: BUCKET })
+  );
   assert.ok(location.$metadata.httpStatusCode === 200);
 });
 
@@ -102,7 +104,11 @@ test('put with a stream body uses aws-chunked framing and trailers', async () =>
     );
     assert.ok(put.ETag);
     const got = await client.send(
-      new GetObjectCommand({ Bucket: BUCKET, Key: 'streamed.bin', ChecksumMode: 'ENABLED' })
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: 'streamed.bin',
+        ChecksumMode: 'ENABLED',
+      })
     );
     const received = Buffer.from(await got.Body.transformToByteArray());
     assert.ok(received.equals(payload));
@@ -113,10 +119,18 @@ test('put with a stream body uses aws-chunked framing and trailers', async () =>
 
 test('range requests return 206 with the right slice', async () => {
   await client.send(
-    new PutObjectCommand({ Bucket: BUCKET, Key: 'range.txt', Body: 'abcdefghij' })
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: 'range.txt',
+      Body: 'abcdefghij',
+    })
   );
   const got = await client.send(
-    new GetObjectCommand({ Bucket: BUCKET, Key: 'range.txt', Range: 'bytes=2-5' })
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: 'range.txt',
+      Range: 'bytes=2-5',
+    })
   );
   assert.strictEqual(await got.Body.transformToString(), 'cdef');
   assert.strictEqual(got.ContentRange, 'bytes 2-5/10');
@@ -124,7 +138,11 @@ test('range requests return 206 with the right slice', async () => {
 
 test('conditional writes: IfNoneMatch * fails when the key exists', async () => {
   await client.send(
-    new PutObjectCommand({ Bucket: BUCKET, Key: 'conditional.txt', Body: 'one' })
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: 'conditional.txt',
+      Body: 'one',
+    })
   );
   await assert.rejects(
     client.send(
@@ -135,7 +153,8 @@ test('conditional writes: IfNoneMatch * fails when the key exists', async () => 
         IfNoneMatch: '*',
       })
     ),
-    (err) => err.name === 'PreconditionFailed' || err.$metadata.httpStatusCode === 412
+    (err) =>
+      err.name === 'PreconditionFailed' || err.$metadata.httpStatusCode === 412
   );
 });
 
@@ -166,10 +185,17 @@ test('copy object preserves content and metadata', async () => {
 test('listObjectsV2 supports prefix, delimiter and pagination', async () => {
   const keys = ['list/a.txt', 'list/b.txt', 'list/sub/c.txt', 'other/z.txt'];
   for (const key of keys) {
-    await client.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: key }));
+    await client.send(
+      new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: key })
+    );
   }
   const page1 = await client.send(
-    new ListObjectsV2Command({ Bucket: BUCKET, Prefix: 'list/', Delimiter: '/', MaxKeys: 2 })
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: 'list/',
+      Delimiter: '/',
+      MaxKeys: 2,
+    })
   );
   assert.strictEqual(page1.KeyCount, 2);
   assert.ok(page1.IsTruncated);
@@ -181,7 +207,9 @@ test('listObjectsV2 supports prefix, delimiter and pagination', async () => {
       ContinuationToken: page1.NextContinuationToken,
     })
   );
-  const allKeys = [...(page1.Contents || []), ...(page2.Contents || [])].map((o) => o.Key);
+  const allKeys = [...(page1.Contents || []), ...(page2.Contents || [])].map(
+    (o) => o.Key
+  );
   const allPrefixes = [
     ...(page1.CommonPrefixes || []),
     ...(page2.CommonPrefixes || []),
@@ -203,7 +231,9 @@ test('multipart upload with checksums round-trips', async () => {
       Metadata: { kind: 'mpu' },
     })
   );
-  const uploads = await client.send(new ListMultipartUploadsCommand({ Bucket: BUCKET }));
+  const uploads = await client.send(
+    new ListMultipartUploadsCommand({ Bucket: BUCKET })
+  );
   assert.ok(uploads.Uploads.some((u) => u.UploadId === created.UploadId));
 
   const up1 = await client.send(
@@ -225,7 +255,11 @@ test('multipart upload with checksums round-trips', async () => {
     })
   );
   const parts = await client.send(
-    new ListPartsCommand({ Bucket: BUCKET, Key: 'multi/part.bin', UploadId: created.UploadId })
+    new ListPartsCommand({
+      Bucket: BUCKET,
+      Key: 'multi/part.bin',
+      UploadId: created.UploadId,
+    })
   );
   assert.strictEqual(parts.Parts.length, 2);
 
@@ -265,7 +299,10 @@ test('multipart upload with checksums round-trips', async () => {
 
 test('abort multipart upload removes it', async () => {
   const created = await client.send(
-    new CreateMultipartUploadCommand({ Bucket: BUCKET, Key: 'multi/aborted.bin' })
+    new CreateMultipartUploadCommand({
+      Bucket: BUCKET,
+      Key: 'multi/aborted.bin',
+    })
   );
   await client.send(
     new AbortMultipartUploadCommand({
@@ -288,7 +325,12 @@ test('abort multipart upload removes it', async () => {
 
 test('object tagging round-trips', async () => {
   await client.send(
-    new PutObjectCommand({ Bucket: BUCKET, Key: 'tagged.txt', Body: 'x', Tagging: 'a=1&b=2' })
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: 'tagged.txt',
+      Body: 'x',
+      Tagging: 'a=1&b=2',
+    })
   );
   await client.send(
     new PutObjectTaggingCommand({
@@ -304,8 +346,12 @@ test('object tagging round-trips', async () => {
 });
 
 test('delete object and batch delete', async () => {
-  await client.send(new PutObjectCommand({ Bucket: BUCKET, Key: 'del/1', Body: '1' }));
-  await client.send(new PutObjectCommand({ Bucket: BUCKET, Key: 'del/2', Body: '2' }));
+  await client.send(
+    new PutObjectCommand({ Bucket: BUCKET, Key: 'del/1', Body: '1' })
+  );
+  await client.send(
+    new PutObjectCommand({ Bucket: BUCKET, Key: 'del/2', Body: '2' })
+  );
   await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: 'del/1' }));
   const batch = await client.send(
     new DeleteObjectsCommand({
@@ -329,7 +375,11 @@ test('missing keys produce NoSuchKey errors', async () => {
 
 test('presigned GET and PUT URLs work with plain fetch', async () => {
   await client.send(
-    new PutObjectCommand({ Bucket: BUCKET, Key: 'presigned.txt', Body: 'presigned content' })
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: 'presigned.txt',
+      Body: 'presigned content',
+    })
   );
   const getUrl = await getSignedUrl(
     client,
@@ -345,12 +395,18 @@ test('presigned GET and PUT URLs work with plain fetch', async () => {
     new PutObjectCommand({ Bucket: BUCKET, Key: 'presigned-put.txt' }),
     { expiresIn: 300 }
   );
-  const putRes = await fetch(putUrl, { method: 'PUT', body: 'uploaded via presigned url' });
+  const putRes = await fetch(putUrl, {
+    method: 'PUT',
+    body: 'uploaded via presigned url',
+  });
   assert.strictEqual(putRes.status, 200);
   const got = await client.send(
     new GetObjectCommand({ Bucket: BUCKET, Key: 'presigned-put.txt' })
   );
-  assert.strictEqual(await got.Body.transformToString(), 'uploaded via presigned url');
+  assert.strictEqual(
+    await got.Body.transformToString(),
+    'uploaded via presigned url'
+  );
 });
 
 test('bucket CORS configuration round-trips', async () => {
@@ -378,7 +434,9 @@ test('bucket CORS configuration round-trips', async () => {
 test('put/delete bucket lifecycle and emptiness enforcement', async () => {
   const name = 'sdk-v3-tmp-bucket';
   await client.send(new CreateBucketCommand({ Bucket: name }));
-  await client.send(new PutObjectCommand({ Bucket: name, Key: 'x', Body: 'x' }));
+  await client.send(
+    new PutObjectCommand({ Bucket: name, Key: 'x', Body: 'x' })
+  );
   await assert.rejects(
     client.send(new DeleteBucketCommand({ Bucket: name })),
     (err) => err.name === 'BucketNotEmpty'
@@ -395,7 +453,9 @@ test('put/copy/delete emit S3 notification events', async () => {
     await client.send(
       new PutObjectCommand({ Bucket: BUCKET, Key: 'events.txt', Body: 'ev' })
     );
-    await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: 'events.txt' }));
+    await client.send(
+      new DeleteObjectCommand({ Bucket: BUCKET, Key: 'events.txt' })
+    );
   } finally {
     ctx.server.removeListener('event', listener);
   }

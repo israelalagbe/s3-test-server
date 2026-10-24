@@ -74,7 +74,11 @@ test('lib-storage Upload streams a large body via managed multipart', async () =
 test('lib-storage Upload falls back to a single PUT for small bodies', async () => {
   const upload = new Upload({
     client,
-    params: { Bucket: BUCKET, Key: 'lib-storage/small.txt', Body: 'tiny payload' },
+    params: {
+      Bucket: BUCKET,
+      Key: 'lib-storage/small.txt',
+      Body: 'tiny payload',
+    },
   });
   await upload.done();
   const got = await client.send(

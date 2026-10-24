@@ -13,7 +13,9 @@ declare class S3TestServer extends EventEmitter {
 
   /** Starts the server. */
   run(): Promise<S3TestServer.RunAddress>;
-  run(callback: (err: Error | null, address?: S3TestServer.RunAddress) => void): this;
+  run(
+    callback: (err: Error | null, address?: S3TestServer.RunAddress) => void
+  ): this;
 
   /** Stops the server (removing data when `resetOnClose` is set). */
   close(): Promise<void>;
@@ -30,9 +32,15 @@ declare class S3TestServer extends EventEmitter {
   /** Deletes all buckets, objects and configurations in the store. */
   reset(): Promise<void>;
 
-  on(event: 'event', listener: (notification: S3TestServer.S3EventNotification) => void): this;
+  on(
+    event: 'event',
+    listener: (notification: S3TestServer.S3EventNotification) => void
+  ): this;
   on(event: string | symbol, listener: (...args: any[]) => void): this;
-  once(event: 'event', listener: (notification: S3TestServer.S3EventNotification) => void): this;
+  once(
+    event: 'event',
+    listener: (notification: S3TestServer.S3EventNotification) => void
+  ): this;
   once(event: string | symbol, listener: (...args: any[]) => void): this;
 }
 

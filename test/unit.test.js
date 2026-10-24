@@ -10,11 +10,17 @@ const { AwsChunkedDecoder } = require('../lib/chunked');
 const CHECK = Buffer.from('123456789');
 
 test('CRC32 matches the reference check value', () => {
-  assert.strictEqual(checksumOf('CRC32', CHECK), Buffer.from('cbf43926', 'hex').toString('base64'));
+  assert.strictEqual(
+    checksumOf('CRC32', CHECK),
+    Buffer.from('cbf43926', 'hex').toString('base64')
+  );
 });
 
 test('CRC32C matches the reference check value', () => {
-  assert.strictEqual(checksumOf('CRC32C', CHECK), Buffer.from('e3069283', 'hex').toString('base64'));
+  assert.strictEqual(
+    checksumOf('CRC32C', CHECK),
+    Buffer.from('e3069283', 'hex').toString('base64')
+  );
 });
 
 test('CRC64NVME matches the reference check value', () => {
@@ -44,7 +50,10 @@ test('XML parser handles nesting, repeats and entities', () => {
       '<Object><Key>a&amp;b</Key></Object><Object><Key>c/d e</Key></Object></Delete>'
   );
   assert.strictEqual(parsed.Delete.Quiet, 'true');
-  assert.deepStrictEqual(parsed.Delete.Object, [{ Key: 'a&b' }, { Key: 'c/d e' }]);
+  assert.deepStrictEqual(parsed.Delete.Object, [
+    { Key: 'a&b' },
+    { Key: 'c/d e' },
+  ]);
 });
 
 test('XML parser rejects malformed documents', () => {

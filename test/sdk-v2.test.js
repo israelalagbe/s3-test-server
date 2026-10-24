@@ -41,29 +41,44 @@ test('aws-sdk v2 with SigV4: put, get, head, list v1', async () => {
     .promise();
   assert.match(put.ETag, /^"[0-9a-f]{32}"$/);
 
-  const got = await client.getObject({ Bucket: BUCKET, Key: 'v4/data.txt' }).promise();
+  const got = await client
+    .getObject({ Bucket: BUCKET, Key: 'v4/data.txt' })
+    .promise();
   assert.strictEqual(got.Body.toString(), 'signed with sigv4');
   assert.strictEqual(got.ContentType, 'text/plain');
   assert.strictEqual(got.Metadata.client, 'v2-sdk');
 
-  const head = await client.headObject({ Bucket: BUCKET, Key: 'v4/data.txt' }).promise();
+  const head = await client
+    .headObject({ Bucket: BUCKET, Key: 'v4/data.txt' })
+    .promise();
   assert.strictEqual(head.ContentLength, 17);
 
   const list = await client
     .listObjects({ Bucket: BUCKET, Prefix: 'v4/', Delimiter: '/' })
     .promise();
-  assert.deepStrictEqual(list.Contents.map((o) => o.Key), ['v4/data.txt']);
+  assert.deepStrictEqual(
+    list.Contents.map((o) => o.Key),
+    ['v4/data.txt']
+  );
 });
 
 test('aws-sdk v2 with legacy SigV2 (signatureVersion "s3")', async () => {
   const client = makeClient('s3');
   await client
-    .putObject({ Bucket: BUCKET, Key: 'v2/data.txt', Body: 'signed with sigv2' })
+    .putObject({
+      Bucket: BUCKET,
+      Key: 'v2/data.txt',
+      Body: 'signed with sigv2',
+    })
     .promise();
-  const got = await client.getObject({ Bucket: BUCKET, Key: 'v2/data.txt' }).promise();
+  const got = await client
+    .getObject({ Bucket: BUCKET, Key: 'v2/data.txt' })
+    .promise();
   assert.strictEqual(got.Body.toString(), 'signed with sigv2');
 
-  const list = await client.listObjects({ Bucket: BUCKET, Prefix: 'v2/' }).promise();
+  const list = await client
+    .listObjects({ Bucket: BUCKET, Prefix: 'v2/' })
+    .promise();
   assert.strictEqual(list.Contents.length, 1);
 
   await client.deleteObject({ Bucket: BUCKET, Key: 'v2/data.txt' }).promise();
@@ -86,7 +101,10 @@ test('aws-sdk v2 list v1 pagination with markers', async () => {
       Marker: page1.Contents[page1.Contents.length - 1].Key,
     })
     .promise();
-  assert.deepStrictEqual(page2.Contents.map((o) => o.Key), ['page/c']);
+  assert.deepStrictEqual(
+    page2.Contents.map((o) => o.Key),
+    ['page/c']
+  );
 });
 
 test('aws-sdk v2 presigned URLs (SigV4 and SigV2) work with fetch', async () => {
@@ -94,7 +112,11 @@ test('aws-sdk v2 presigned URLs (SigV4 and SigV2) work with fetch', async () => 
     const client = makeClient(signatureVersion);
     const key = `presigned-${signatureVersion}.txt`;
     await client
-      .putObject({ Bucket: BUCKET, Key: key, Body: `presigned ${signatureVersion}` })
+      .putObject({
+        Bucket: BUCKET,
+        Key: key,
+        Body: `presigned ${signatureVersion}`,
+      })
       .promise();
     const url = client.getSignedUrl('getObject', {
       Bucket: BUCKET,
@@ -102,7 +124,11 @@ test('aws-sdk v2 presigned URLs (SigV4 and SigV2) work with fetch', async () => 
       Expires: 300,
     });
     const res = await fetch(url);
-    assert.strictEqual(res.status, 200, `status for ${signatureVersion}: ${res.status}`);
+    assert.strictEqual(
+      res.status,
+      200,
+      `status for ${signatureVersion}: ${res.status}`
+    );
     assert.strictEqual(await res.text(), `presigned ${signatureVersion}`);
   }
 });
@@ -146,7 +172,9 @@ test('aws-sdk v2 multipart upload', async () => {
     })
     .promise();
   assert.match(done.ETag, /-2"$/);
-  const got = await client.getObject({ Bucket: BUCKET, Key: 'v2-multi.bin' }).promise();
+  const got = await client
+    .getObject({ Bucket: BUCKET, Key: 'v2-multi.bin' })
+    .promise();
   assert.strictEqual(got.Body.length, part1.length + part2.length);
 });
 

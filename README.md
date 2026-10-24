@@ -26,11 +26,11 @@ const S3TestServer = require('s3-test-server');
 
 const server = new S3TestServer({
   port: 4568,
-  directory: './s3-data',           // omit for a temp directory
+  directory: './s3-data', // omit for a temp directory
   configureBuckets: [{ name: 'my-bucket' }],
 });
 
-const { endpoint } = await server.run();   // http://localhost:4568
+const { endpoint } = await server.run(); // http://localhost:4568
 // ... run your tests ...
 await server.close();
 ```
@@ -106,21 +106,21 @@ multipart thresholds, this test fails, exactly as it would against AWS.
 
 ## Options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `address` | `'localhost'` | Hostname or IP to bind to |
-| `port` | `4568` | Port (use `0` for an ephemeral port) |
-| `directory` | temp dir | Where buckets and objects are stored |
-| `accessKeyId` | `'S3TEST'` | Access key clients must sign with |
-| `secretAccessKey` | `'S3TEST'` | Matching secret key |
-| `region` | `'us-east-1'` | Region reported in responses and events |
-| `key`, `cert` | none | Provide both to serve HTTPS |
-| `silent` | `false` | Suppress log output |
-| `resetOnClose` | `false` | Delete all bucket data on `close()` |
-| `allowMismatchedSignatures` | `false` | Accept well-formed but wrong signatures |
-| `vhostBuckets` | `true` | Virtual-host-style addressing (`bucket.localhost`, `bucket.s3.<region>.amazonaws.com`) |
-| `serviceEndpoint` | `'amazonaws.com'` | Root domain for virtual-host-style access |
-| `configureBuckets` | `[]` | Buckets (plus raw XML CORS/website/tagging configs) created at startup |
+| Option                      | Default           | Description                                                                            |
+| --------------------------- | ----------------- | -------------------------------------------------------------------------------------- |
+| `address`                   | `'localhost'`     | Hostname or IP to bind to                                                              |
+| `port`                      | `4568`            | Port (use `0` for an ephemeral port)                                                   |
+| `directory`                 | temp dir          | Where buckets and objects are stored                                                   |
+| `accessKeyId`               | `'S3TEST'`        | Access key clients must sign with                                                      |
+| `secretAccessKey`           | `'S3TEST'`        | Matching secret key                                                                    |
+| `region`                    | `'us-east-1'`     | Region reported in responses and events                                                |
+| `key`, `cert`               | none              | Provide both to serve HTTPS                                                            |
+| `silent`                    | `false`           | Suppress log output                                                                    |
+| `resetOnClose`              | `false`           | Delete all bucket data on `close()`                                                    |
+| `allowMismatchedSignatures` | `false`           | Accept well-formed but wrong signatures                                                |
+| `vhostBuckets`              | `true`            | Virtual-host-style addressing (`bucket.localhost`, `bucket.s3.<region>.amazonaws.com`) |
+| `serviceEndpoint`           | `'amazonaws.com'` | Root domain for virtual-host-style access                                              |
+| `configureBuckets`          | `[]`              | Buckets (plus raw XML CORS/website/tagging configs) created at startup                 |
 
 Anonymous (unsigned) requests are accepted, as on a public bucket, which is
 handy for plain `fetch`/`curl` in tests. Signed requests are verified against
