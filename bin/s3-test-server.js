@@ -7,7 +7,7 @@ const S3TestServer = require('../lib');
 
 const HELP = `Usage: s3-test-server [options]
 
-A lightweight fake Amazon S3 server for development and testing.
+A lightweight Amazon S3 emulator for development and testing.
 
 Options:
   -a, --address <host>             Hostname or IP to bind to (default: localhost)

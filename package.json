@@ -1,7 +1,7 @@
 {
   "name": "s3-test-server",
   "version": "1.0.0",
-  "description": "A modern, lightweight fake Amazon S3 server for local development and testing — compatible with AWS SDK v2 and v3, Signature V2/V4, path-style and virtual-host-style addressing, streaming (aws-chunked) uploads and flexible checksums.",
+  "description": "A modern, lightweight Amazon S3 emulator for local development and testing. Compatible with AWS SDK v2 and v3, Signature V2/V4, path-style and virtual-host-style addressing, streaming (aws-chunked) uploads and flexible checksums.",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -22,7 +22,7 @@
   "keywords": [
     "s3",
     "aws",
-    "fake",
+    "emulator",
     "mock",
     "test",
     "server",
