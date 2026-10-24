@@ -48,6 +48,8 @@ declare namespace S3TestServer {
   interface BucketConfiguration {
     /** Bucket name (must be a valid S3 bucket name). */
     name: string;
+    /** Canned ACL applied to the bucket. Default: the server's `defaultBucketAcl`. */
+    acl?: CannedBucketAcl;
     /**
      * Raw XML configuration documents applied to the bucket at startup.
      * CORS (`<CORSConfiguration>`), website (`<WebsiteConfiguration>`) and
@@ -55,6 +57,9 @@ declare namespace S3TestServer {
      */
     configs?: Array<string | Buffer>;
   }
+
+  type CannedBucketAcl =
+    'private' | 'public-read' | 'public-read-write' | 'authenticated-read';
 
   interface S3TestServerOptions {
     /** Hostname or IP to bind to. Default: `"localhost"`. */
@@ -97,6 +102,12 @@ declare namespace S3TestServer {
     secretAccessKey?: string;
     /** Region reported in responses and event records. Default: `"us-east-1"`. */
     region?: string;
+    /**
+     * ACL for buckets without an explicit one. `'private'` rejects anonymous
+     * requests, `'public-read'` allows anonymous GET/HEAD only.
+     * Default: `'public-read-write'` (fully public, like earlier releases).
+     */
+    defaultBucketAcl?: CannedBucketAcl;
     /** Buckets to create (and configure) before the server starts. */
     configureBuckets?: BucketConfiguration[];
   }
@@ -116,6 +127,7 @@ declare namespace S3TestServer {
         | 'accessKeyId'
         | 'secretAccessKey'
         | 'region'
+        | 'defaultBucketAcl'
       >
     >;
 
@@ -178,6 +190,7 @@ declare namespace S3TestServer {
 
   export {
     S3TestServer,
+    CannedBucketAcl,
     BucketConfiguration,
     S3TestServerOptions,
     ResolvedOptions,

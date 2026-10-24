@@ -142,10 +142,48 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
   recognized for virtual-host-style access.
 - `allowMismatchedSignatures` (boolean, default `false`): accept well-formed
   but incorrect signatures.
+- `defaultBucketAcl` (string, default `'public-read-write'`): ACL applied to
+  buckets without an explicit one. See "Public and private buckets".
 
-Anonymous (unsigned) requests are accepted, as on a public bucket, which is
-handy for plain `fetch`/`curl` in tests. Signed requests are verified against
-`accessKeyId`/`secretAccessKey`.
+## Public and private buckets
+
+Signed requests are verified against `accessKeyId`/`secretAccessKey` and have
+full access. Anonymous (unsigned) requests are checked against the bucket's
+canned ACL:
+
+- `public-read-write`: anonymous reads and writes, like a fully public
+  bucket. This is the default (`defaultBucketAcl`), so plain `fetch`/`curl`
+  testing works out of the box.
+- `public-read`: anonymous GET/HEAD only; anonymous writes get
+  `403 AccessDenied`.
+- `private` or `authenticated-read`: all anonymous requests get
+  `403 AccessDenied`.
+
+Set a bucket's ACL any of the usual ways:
+
+```js
+// at startup
+new S3TestServer({
+  defaultBucketAcl: 'private', // S3-like: everything needs signing
+  configureBuckets: [
+    { name: 'assets', acl: 'public-read' },
+    { name: 'internal' }, // inherits defaultBucketAcl
+  ],
+});
+```
+
+```js
+// through the API
+await client.send(
+  new CreateBucketCommand({ Bucket: 'assets', ACL: 'public-read' })
+);
+await client.send(
+  new PutBucketAclCommand({ Bucket: 'assets', ACL: 'private' })
+);
+```
+
+`GetBucketAcl` reflects the canned ACL (an `AllUsers` grant appears for the
+public ones). Object-level ACLs are accepted but not enforced.
 
 ## Supported operations
 
