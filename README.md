@@ -151,6 +151,33 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
 ### All options at a glance
 
 ```js
+// bucket configuration documents used below
+const corsXml = `<CORSConfiguration>
+  <CORSRule>
+    <AllowedOrigin>https://app.example.com</AllowedOrigin>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>PUT</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+  </CORSRule>
+</CORSConfiguration>`;
+
+const websiteXml = `<WebsiteConfiguration>
+  <IndexDocument><Suffix>index.html</Suffix></IndexDocument>
+  <ErrorDocument><Key>error.html</Key></ErrorDocument>
+</WebsiteConfiguration>`;
+
+const policyJson = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: '*',
+      Action: 's3:GetObject',
+      Resource: 'arn:aws:s3:::site/public/*', // anonymous reads under public/ only
+    },
+  ],
+});
+
 const server = new S3TestServer({
   // server
   address: 'localhost', // hostname or IP the HTTP server binds to
