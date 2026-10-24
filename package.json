@@ -4,6 +4,14 @@
   "description": "A modern, lightweight Amazon S3 emulator for local development and testing. Compatible with AWS SDK v2 and v3, Signature V2/V4, path-style and virtual-host-style addressing, streaming (aws-chunked) uploads and flexible checksums.",
   "license": "MIT",
   "author": "Israel Alagbe <israelalagbe53@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/israelalagbe/s3-test-server.git"
+  },
+  "homepage": "https://github.com/israelalagbe/s3-test-server#readme",
+  "bugs": {
+    "url": "https://github.com/israelalagbe/s3-test-server/issues"
+  },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "bin": {
