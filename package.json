@@ -4,6 +4,7 @@
   "description": "A modern, lightweight fake Amazon S3 server for local development and testing — compatible with AWS SDK v2 and v3, Signature V2/V4, path-style and virtual-host-style addressing, streaming (aws-chunked) uploads and flexible checksums.",
   "license": "MIT",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "bin": {
     "s3-test-server": "bin/s3-test-server.js"
   },
