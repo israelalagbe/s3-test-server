@@ -41,13 +41,62 @@ const client = new S3Client({
 });
 ```
 
-Or from the command line:
+### Running it as a standalone server
+
+The package ships a CLI, so the emulator can run on its own, outside your
+test process, and serve several apps at once. No install needed:
 
 ```bash
-npx s3-test-server -d ./s3-data -p 4568 --configure-bucket my-bucket
+npx s3-test-server
 ```
 
-Run `s3-test-server --help` for all flags.
+That listens on `http://localhost:4568` with a temporary data directory and
+the default `S3TEST`/`S3TEST` credentials. For a longer-lived setup, install
+it (`npm install -g s3-test-server`, or as a dev dependency and run it from
+`package.json` scripts) and give it persistent storage and buckets:
+
+```bash
+s3-test-server \
+  --directory ./s3-data \
+  --port 4568 \
+  --configure-bucket uploads \
+  --configure-bucket "site,./fixtures/cors.xml,./fixtures/website.xml,./fixtures/policy.json"
+```
+
+`--configure-bucket` takes a bucket name, optionally followed by
+comma-separated paths to configuration documents (CORS, website or tagging
+XML, or a bucket-policy JSON), and can be repeated. Other useful flags:
+
+```bash
+s3-test-server \
+  --access-key-id dev --secret-access-key dev-secret \
+  --region eu-west-1 \
+  --default-bucket-acl public-read-write \
+  --reset-on-start
+```
+
+pins credentials and a region (requests signed for other regions are
+rejected), makes unconfigured buckets fully public so plain `curl` works,
+and starts from an empty data directory on every launch. Add
+`--key ./key.pem --cert ./cert.pem` to serve HTTPS, and `--silent` to turn
+off request logging. `s3-test-server --help` lists everything.
+
+Any S3 tooling can then talk to it, not just the SDKs. The AWS CLI:
+
+```bash
+AWS_ACCESS_KEY_ID=S3TEST AWS_SECRET_ACCESS_KEY=S3TEST \
+  aws --endpoint-url http://localhost:4568 s3 mb s3://my-bucket
+```
+
+```bash
+AWS_ACCESS_KEY_ID=S3TEST AWS_SECRET_ACCESS_KEY=S3TEST \
+  aws --endpoint-url http://localhost:4568 s3 cp ./report.csv s3://my-bucket/
+```
+
+The process runs until you stop it; Ctrl-C (SIGINT) and SIGTERM shut it down
+cleanly, and with `--reset-on-close` the data directory is emptied on the way
+out. Data in `--directory` otherwise survives restarts, so a local dev server
+keeps its objects between sessions.
 
 ## Why not just mock?
 
