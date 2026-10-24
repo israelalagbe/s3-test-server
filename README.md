@@ -1,13 +1,62 @@
 # s3-test-server
 
-A modern, lightweight fake Amazon S3 server for local development and testing.
-Zero runtime dependencies, a single small package, and wire-level compatibility
-with both old and new S3 clients:
+A modern, lightweight Amazon S3 emulator for local development and testing.
 
-- **AWS SDK for JavaScript v3** — including flexible checksums
+## Why not just mock?
+
+Mocking the S3 client tests your assumptions about S3, not S3 itself. Stubs
+skip request signing, checksum validation, multipart ETag rules, pagination
+contracts and error shapes, so code that passes mocked tests can still break
+against the real service, and every SDK upgrade silently invalidates the
+stubs.
+
+Before, with a mocked client, nothing below the stub actually runs:
+
+```js
+jest.mock('@aws-sdk/client-s3');
+S3Client.prototype.send = jest.fn().mockResolvedValue({ ETag: '"abc123"' });
+
+test('uploads a report', async () => {
+  await uploadReport('march.csv', csv);
+  expect(S3Client.prototype.send).toHaveBeenCalled(); // proves nothing about S3
+});
+```
+
+After, the same test against `s3-test-server`. Your production code runs
+unmodified and every byte goes over HTTP (`aws-s3.local` is any hostname you
+map to 127.0.0.1):
+
+```js
+const server = new S3TestServer({
+  address: 'aws-s3.local',
+  configureBuckets: [{ name: 'reports' }],
+});
+
+beforeAll(() => server.run()); // http://aws-s3.local:4568
+afterAll(() => server.close());
+
+test('uploads a report and returns its URL', async () => {
+  const url = await uploadReport('march.csv', csv); // real code, real wire
+
+  // the full object URL is real, not invented by a stub
+  expect(url).toBe('http://aws-s3.local:4568/reports/march.csv');
+
+  // and it resolves: read the object back like any HTTP resource
+  const saved = await fetch(url);
+  expect(await saved.text()).toBe(csv.toString());
+});
+```
+
+If `uploadReport` signs incorrectly, streams a corrupt body or mishandles
+multipart thresholds, this test fails, exactly as it would against AWS.
+
+Zero runtime dependencies, a single small package, and wire-level
+compatibility with both old and new S3 clients:
+
+- **AWS SDK for JavaScript v3**, including flexible checksums
   (CRC32, CRC32C, CRC64NVME, SHA1, SHA256), `aws-chunked` streaming uploads
   with trailers, and full-object / composite multipart checksums
-- **AWS SDK for JavaScript v2** — SigV4 and legacy SigV2 (`signatureVersion: 's3'`)
+- **AWS SDK for JavaScript v2**, SigV4 and legacy SigV2 (`signatureVersion: 's3'`)
 - **Any other S3 client** that signs with Signature V2 or V4, header-based or
   presigned, path-style or virtual-host-style
 
@@ -65,7 +114,7 @@ Run `s3-test-server --help` for all flags.
 | `accessKeyId` | `'S3TEST'` | Access key clients must sign with |
 | `secretAccessKey` | `'S3TEST'` | Matching secret key |
 | `region` | `'us-east-1'` | Region reported in responses and events |
-| `key`, `cert` | — | Provide both to serve HTTPS |
+| `key`, `cert` | none | Provide both to serve HTTPS |
 | `silent` | `false` | Suppress log output |
 | `resetOnClose` | `false` | Delete all bucket data on `close()` |
 | `allowMismatchedSignatures` | `false` | Accept well-formed but wrong signatures |
@@ -73,20 +122,20 @@ Run `s3-test-server --help` for all flags.
 | `serviceEndpoint` | `'amazonaws.com'` | Root domain for virtual-host-style access |
 | `configureBuckets` | `[]` | Buckets (plus raw XML CORS/website/tagging configs) created at startup |
 
-Anonymous (unsigned) requests are accepted, as on a public bucket — handy for
-plain `fetch`/`curl` in tests. Signed requests are verified against
+Anonymous (unsigned) requests are accepted, as on a public bucket, which is
+handy for plain `fetch`/`curl` in tests. Signed requests are verified against
 `accessKeyId`/`secretAccessKey`.
 
 ## Supported operations
 
-**Service / buckets** — ListBuckets, Create/Delete/HeadBucket,
+**Service / buckets**: ListBuckets, Create/Delete/HeadBucket,
 GetBucketLocation, ListObjects (v1), ListObjectsV2, ListObjectVersions
 (unversioned mapping), Get/Put/DeleteBucketCors, Get/Put/DeleteBucketWebsite,
 Get/Put/DeleteBucketTagging, GetBucketVersioning, GetBucketEncryption,
 GetBucketNotification/RequestPayment/Logging/Accelerate, ACLs (dummy),
 ListMultipartUploads.
 
-**Objects** — Put/Get/Head/DeleteObject, DeleteObjects, CopyObject
+**Objects**: Put/Get/Head/DeleteObject, DeleteObjects, CopyObject
 (COPY/REPLACE directives, copy conditions), POST form uploads
 (`multipart/form-data`, `${filename}` substitution, `success_action_*`),
 Get/Put/DeleteObjectTagging, GetObjectAttributes, object ACLs (dummy),
@@ -95,15 +144,15 @@ Range requests, conditional reads (`If-Match`, `If-None-Match`,
 `If-Match`), `response-*` header overrides, `Content-MD5` and
 `x-amz-checksum-*` validation (headers or `aws-chunked` trailers).
 
-**Multipart** — Create/Abort/CompleteMultipartUpload, UploadPart,
+**Multipart**: Create/Abort/CompleteMultipartUpload, UploadPart,
 UploadPartCopy (with `x-amz-copy-source-range`), ListParts, correct
 multipart ETags (`md5-of-md5s-N`), composite and full-object checksums.
 
-**Static website hosting** — index/error documents, folder redirects,
+**Static website hosting**: index/error documents, folder redirects,
 `x-amz-website-redirect-location`, `RedirectAllRequestsTo`; served for
 anonymous GET/HEAD requests on buckets with a website configuration.
 
-**CORS** — preflight (`OPTIONS`) evaluation and response headers, driven by
+**CORS**: preflight (`OPTIONS`) evaluation and response headers, driven by
 the bucket's CORS configuration.
 
 Not implemented: bucket versioning (`PutBucketVersioning` with `Enabled`
@@ -138,11 +187,11 @@ http.createServer(s3.callback()).listen(4568);
 
 ## Programmatic API
 
-- `run([callback])` → `Promise<{ address, port, protocol, endpoint }>`
-- `close([callback])` → `Promise<void>`
-- `callback()` / `getMiddleware()` → request handler
-- `configureBuckets()` → provision `options.configureBuckets` without the API
-- `reset()` → delete all buckets and configurations
+- `run([callback])` returns `Promise<{ address, port, protocol, endpoint }>`
+- `close([callback])` returns `Promise<void>`
+- `callback()` / `getMiddleware()` returns a request handler
+- `configureBuckets()` provisions `options.configureBuckets` without the API
+- `reset()` deletes all buckets and configurations
 
 TypeScript definitions ship with the package (`lib/index.d.ts`).
 
@@ -161,7 +210,7 @@ AWS SDKs, a custom HTTPS agent with `rejectUnauthorized: false`).
 
 ## Requirements
 
-Node.js ≥ 20.
+Node.js >= 20.
 
 ## License
 
