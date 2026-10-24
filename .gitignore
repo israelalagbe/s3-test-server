@@ -7,3 +7,4 @@ coverage/
 # Local working notes stay out of the repo
 AGENTS.md
 .s3-data/
+media/
