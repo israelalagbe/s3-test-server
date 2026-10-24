@@ -123,6 +123,7 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
 | Option             | Type                    | Default  | Description                                                                                |
 | ------------------ | ----------------------- | -------- | ------------------------------------------------------------------------------------------ |
 | `directory`        | `string`                | temp dir | Where buckets and objects are stored. Data persists across restarts.                       |
+| `resetOnStart`     | `boolean`               | `false`  | Clear the data directory on every start, so a persistent `directory` begins empty.         |
 | `resetOnClose`     | `boolean`               | `false`  | Delete all bucket data when `close()` is called.                                           |
 | `configureBuckets` | `BucketConfiguration[]` | `[]`     | Buckets to create at startup, each with optional raw XML configs (CORS, website, tagging). |
 

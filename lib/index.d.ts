@@ -72,6 +72,11 @@ declare namespace S3TestServer {
      * Default: a freshly created temporary directory.
      */
     directory?: string;
+    /**
+     * Clear the data directory each time the server starts, so a persistent
+     * `directory` does not leak state between runs. Default: `false`.
+     */
+    resetOnStart?: boolean;
     /** Remove all bucket data when the server closes. Default: `false`. */
     resetOnClose?: boolean;
     /**
@@ -103,6 +108,7 @@ declare namespace S3TestServer {
         | 'address'
         | 'port'
         | 'silent'
+        | 'resetOnStart'
         | 'resetOnClose'
         | 'allowMismatchedSignatures'
         | 'vhostBuckets'

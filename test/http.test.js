@@ -205,3 +205,38 @@ test('reset() clears every bucket', async () => {
     await other.close();
   }
 });
+
+test('a persistent directory survives restarts unless resetOnStart is set', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 's3-restart-'));
+  try {
+    const first = await startServer({ directory, resetOnClose: false });
+    await fetch(`${first.endpoint}/durable`, { method: 'PUT' });
+    await fetch(`${first.endpoint}/durable/kept.txt`, {
+      method: 'PUT',
+      body: 'still here',
+    });
+    await first.close();
+
+    // Restart on the same directory: the data is still there.
+    const second = await startServer({ directory, resetOnClose: false });
+    const kept = await fetch(`${second.endpoint}/durable/kept.txt`);
+    assert.strictEqual(kept.status, 200);
+    assert.strictEqual(await kept.text(), 'still here');
+    await second.close();
+
+    // Restart with resetOnStart: the directory is cleared first.
+    const third = await startServer({
+      directory,
+      resetOnClose: false,
+      resetOnStart: true,
+    });
+    const buckets = await fetch(`${third.endpoint}/`);
+    assert.doesNotMatch(await buckets.text(), /durable/);
+    await third.close();
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
