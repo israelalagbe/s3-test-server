@@ -135,7 +135,10 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
   with.
 - `secretAccessKey` (string, default `'S3TEST'`): matching secret key.
 - `region` (string, default `'us-east-1'`): region reported in responses and
-  event records.
+  event records. When set explicitly, the server behaves like a regional
+  endpoint: SigV4 requests signed for another region are rejected
+  (`AuthorizationHeaderMalformed`), as is a mismatched `LocationConstraint`
+  on CreateBucket. When omitted, any region is accepted.
 - `vhostBuckets` (boolean, default `true`): virtual-host-style addressing
   (`bucket.localhost`, `bucket.s3.<region>.amazonaws.com`).
 - `serviceEndpoint` (string, default `'amazonaws.com'`): root domain
@@ -144,6 +147,38 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
   but incorrect signatures.
 - `defaultBucketAcl` (string, default `'private'`): ACL applied to buckets
   without an explicit one. See "Public and private buckets".
+
+### All options at a glance
+
+```js
+const server = new S3TestServer({
+  // server
+  address: 'localhost', // hostname or IP the HTTP server binds to
+  port: 4568, // port to listen on; 0 picks a free ephemeral port
+  key: fs.readFileSync('./key.pem'), // TLS private key; with cert, serves HTTPS
+  cert: fs.readFileSync('./cert.pem'), // TLS certificate for HTTPS
+  silent: false, // true suppresses all request/startup logging
+
+  // storage
+  directory: './s3-data', // where buckets and objects live; omit for a temp dir
+  resetOnStart: false, // true clears the data directory on every run()
+  resetOnClose: false, // true deletes all bucket data on close()
+  configureBuckets: [
+    // buckets created before the server starts
+    { name: 'assets', acl: 'public-read' }, // canned ACL for this bucket
+    { name: 'site', configs: [corsXml, websiteXml, policyJson] }, // raw configs
+  ],
+
+  // credentials and addressing
+  accessKeyId: 'S3TEST', // access key id requests must be signed with
+  secretAccessKey: 'S3TEST', // matching secret for SigV2/SigV4 signatures
+  region: 'eu-west-1', // pins the region: other regions are rejected
+  defaultBucketAcl: 'private', // ACL for buckets created without one
+  vhostBuckets: true, // resolve bucket.localhost-style Host headers
+  serviceEndpoint: 'amazonaws.com', // root domain for virtual-host addressing
+  allowMismatchedSignatures: false, // true accepts wrong (but well-formed) signatures
+});
+```
 
 ## Public and private buckets
 

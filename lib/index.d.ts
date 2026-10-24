@@ -102,7 +102,12 @@ declare namespace S3TestServer {
     accessKeyId?: string;
     /** Secret access key clients must sign requests with. Default: `"S3TEST"`. */
     secretAccessKey?: string;
-    /** Region reported in responses and event records. Default: `"us-east-1"`. */
+    /**
+     * Region reported in responses and event records. Default: `"us-east-1"`.
+     * When set explicitly, the server acts like a regional endpoint and
+     * rejects SigV4 requests signed for other regions; when omitted, any
+     * region is accepted.
+     */
     region?: string;
     /**
      * ACL for buckets without an explicit one. `'private'` (the default, like
