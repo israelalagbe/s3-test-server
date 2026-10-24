@@ -2,18 +2,12 @@
 
 A lightweight Amazon S3 emulator for local development and testing.
 
-Zero runtime dependencies, a single small package, and wire-level
-compatibility with both old and new S3 clients:
-
-- **AWS SDK for JavaScript v3**, including flexible checksums
-  (CRC32, CRC32C, CRC64NVME, SHA1, SHA256), `aws-chunked` streaming uploads
-  with trailers, and full-object / composite multipart checksums
-- **AWS SDK for JavaScript v2**, SigV4 and legacy SigV2 (`signatureVersion: 's3'`)
-- **Any other S3 client** that signs with Signature V2 or V4, header-based or
-  presigned, path-style or virtual-host-style
-
-Data is stored on the filesystem (a temp directory by default), so it survives
-restarts when you point it at a directory of your own.
+Zero runtime dependencies and wire-level compatibility with old and new S3
+clients: AWS SDK for JavaScript v3 (flexible checksums, `aws-chunked`
+streaming, multipart), v2 (SigV4 and legacy SigV2), and any other client that
+signs with Signature V2/V4, header-based or presigned, path-style or
+virtual-host-style. Objects are stored on the filesystem and persist across
+restarts when you point `directory` at a folder of your own.
 
 ## Quick start
 
@@ -314,6 +308,33 @@ server.on('event', (notification) => {
 Emitted for `ObjectCreated:Put`, `ObjectCreated:Copy`, `ObjectCreated:Post`,
 `ObjectCreated:CompleteMultipartUpload` and `ObjectRemoved:Delete`.
 
+## Test helpers
+
+Three helpers make assertions and fixtures easy without building an S3
+client; they talk to the store directly:
+
+```js
+// seed fixtures (bucket is created if missing; no events are emitted)
+await server.putObjects('reports', [
+  { key: 'public/a.csv', body: 'a,b,c', contentType: 'text/csv' },
+  { key: 'internal/b.csv', body: Buffer.from('d,e,f') },
+]);
+
+// inspect bucket contents in assertions
+const all = await server.getObjects('reports');
+const csvs = await server.getObjects('reports', {
+  prefix: 'public/',
+  bodies: true, // each summary gets a `body` Buffer
+});
+
+// wait for background uploads from the code under test;
+// multipart uploads only count once completed
+const files = await server.waitForObjects('reports', 2, { timeout: 5000 });
+```
+
+After `run()` resolves, `server.hostPort` (`"localhost:4568"`) and
+`server.endpoint` (`"http://localhost:4568"`) are also set on the instance.
+
 ## Using as middleware
 
 ```js
@@ -332,6 +353,9 @@ http.createServer(s3.callback()).listen(4568);
 - `callback()` / `getMiddleware()` returns a request handler
 - `configureBuckets()` provisions `options.configureBuckets` without the API
 - `reset()` deletes all buckets and configurations
+- `getObjects(bucket, { prefix, bodies })` lists completed objects
+- `waitForObjects(bucket, count, { prefix, timeout })` awaits uploads
+- `putObjects(bucket, objects)` seeds fixtures without the HTTP API
 
 TypeScript definitions ship with the package (`lib/index.d.ts`).
 

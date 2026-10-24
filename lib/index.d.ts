@@ -11,6 +11,12 @@ declare class S3TestServer extends EventEmitter {
   /** The underlying HTTP(S) server, available after `run()` resolves. */
   httpServer: HttpServer | null;
 
+  /** `host:port` the server listens on; set once `run()` resolves. */
+  hostPort: string | null;
+
+  /** Full endpoint URL (e.g. `http://localhost:4568`); set once `run()` resolves. */
+  endpoint: string | null;
+
   /** Starts the server. */
   run(): Promise<S3TestServer.RunAddress>;
   run(
@@ -31,6 +37,34 @@ declare class S3TestServer extends EventEmitter {
 
   /** Deletes all buckets, objects and configurations in the store. */
   reset(): Promise<void>;
+
+  /**
+   * Lists the completed objects in a bucket, sorted by key. With
+   * `bodies: true`, each summary also carries its content as a Buffer.
+   */
+  getObjects(
+    bucket: string,
+    options?: { prefix?: string; bodies?: boolean }
+  ): Promise<S3TestServer.ObjectSummary[]>;
+
+  /**
+   * Resolves with the bucket's objects once at least `count` exist
+   * (optionally under `prefix`); rejects after `timeout` ms (default 10000).
+   */
+  waitForObjects(
+    bucket: string,
+    count: number,
+    options?: { prefix?: string; timeout?: number }
+  ): Promise<S3TestServer.ObjectSummary[]>;
+
+  /**
+   * Seeds objects directly into the store (the bucket is created when
+   * missing). No S3 event notifications are emitted for seeded objects.
+   */
+  putObjects(
+    bucket: string,
+    objects: S3TestServer.SeedObject[]
+  ): Promise<S3TestServer.ObjectSummary[]>;
 
   on(
     event: 'event',
@@ -139,11 +173,33 @@ declare namespace S3TestServer {
       >
     >;
 
+  interface ObjectSummary {
+    key: string;
+    size: number;
+    /** Hex ETag without quotes. */
+    etag: string;
+    lastModified: Date;
+    contentType?: string;
+    /** User metadata (`x-amz-meta-*`), with the prefix stripped. */
+    metadata: Record<string, string>;
+    /** Present when requested with `bodies: true`. */
+    body?: Buffer;
+  }
+
+  interface SeedObject {
+    key: string;
+    body: string | Buffer;
+    contentType?: string;
+    metadata?: Record<string, string>;
+  }
+
   interface RunAddress {
     /** Bound address, as reported by `net.Server#address()`. */
     address: string;
     family: string;
     port: number;
+    /** `host:port` the server listens on. */
+    hostPort: string;
     /** `"http"` or `"https"`. */
     protocol: string;
     /** Convenience endpoint URL, e.g. `"http://localhost:4568"`. */
@@ -198,6 +254,8 @@ declare namespace S3TestServer {
 
   export {
     S3TestServer,
+    ObjectSummary,
+    SeedObject,
     CannedBucketAcl,
     BucketConfiguration,
     S3TestServerOptions,
