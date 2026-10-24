@@ -1,6 +1,6 @@
-# s3-test-server
+# AWS S3 Local Emulator Test Server
 
-A modern, lightweight Amazon S3 emulator for local development and testing.
+A lightweight Amazon S3 emulator for local development and testing.
 
 Zero runtime dependencies, a single small package, and wire-level
 compatibility with both old and new S3 clients:
