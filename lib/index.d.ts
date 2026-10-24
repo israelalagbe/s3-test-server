@@ -51,9 +51,11 @@ declare namespace S3TestServer {
     /** Canned ACL applied to the bucket. Default: the server's `defaultBucketAcl`. */
     acl?: CannedBucketAcl;
     /**
-     * Raw XML configuration documents applied to the bucket at startup.
-     * CORS (`<CORSConfiguration>`), website (`<WebsiteConfiguration>`) and
-     * tagging (`<Tagging>`) documents are recognized by their root element.
+     * Raw configuration documents applied to the bucket at startup.
+     * XML documents are recognized by their root element: CORS
+     * (`<CORSConfiguration>`), website (`<WebsiteConfiguration>`) and tagging
+     * (`<Tagging>`). A JSON document (leading `{`) is stored as the bucket
+     * policy and evaluated for anonymous requests.
      */
     configs?: Array<string | Buffer>;
   }

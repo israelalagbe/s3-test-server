@@ -184,6 +184,39 @@ await client.send(
 `GetBucketAcl` reflects the canned ACL (an `AllUsers` grant appears for the
 public ones). Object-level ACLs are accepted but not enforced.
 
+### Per-prefix access with bucket policies
+
+For finer control than canned ACLs, the server evaluates a subset of bucket
+policies against anonymous requests: `Effect` Allow/Deny, `Principal` `"*"`,
+`Action` wildcards (`s3:GetObject`, `s3:ListBucket`, `s3:PutObject`,
+`s3:DeleteObject`, `s3:*`) and `Resource` ARNs with wildcards. Signed
+requests always have full access; an explicit `Deny` only narrows anonymous
+access. Set policies with `PutBucketPolicy`, or as a JSON document in
+`configureBuckets` (detected by its leading `{`):
+
+```js
+// only keys under public/ are readable without signing
+const policy = JSON.stringify({
+  Version: '2012-10-17',
+  Statement: [
+    {
+      Effect: 'Allow',
+      Principal: '*',
+      Action: 's3:GetObject',
+      Resource: 'arn:aws:s3:::site/public/*',
+    },
+  ],
+});
+new S3TestServer({ configureBuckets: [{ name: 'site', configs: [policy] }] });
+```
+
+Anonymous `GET /site/public/logo.png` then succeeds while
+`GET /site/internal/report.csv` and all anonymous writes return
+`403 AccessDenied`. `GetBucketPolicy` returns the stored document and
+`DeleteBucketPolicy` removes it. `NotAction`, `NotResource`, `NotPrincipal`
+and `Condition` are rejected as `NotImplemented` rather than silently
+ignored.
+
 ## Supported operations
 
 ### Service and buckets
@@ -195,7 +228,8 @@ public ones). Object-level ACLs are accepted but not enforced.
   Get/Put/DeleteBucketTagging
 - GetBucketVersioning, GetBucketEncryption, GetBucketNotification,
   GetBucketRequestPayment, GetBucketLogging, GetBucketAccelerate
-- Bucket ACLs (dummy responses)
+- Bucket ACLs (canned, enforced for anonymous requests)
+- Bucket policies (anonymous-access subset): Get/Put/DeleteBucketPolicy
 
 ### Objects
 
