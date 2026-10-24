@@ -1,6 +1,6 @@
 {
   "name": "s3-test-server",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A modern, lightweight Amazon S3 emulator for local development and testing. Compatible with AWS SDK v2 and v3, Signature V2/V4, path-style and virtual-host-style addressing, streaming (aws-chunked) uploads and flexible checksums.",
   "license": "MIT",
   "author": "Israel Alagbe <israelalagbe53@gmail.com>",
