@@ -1,0 +1,8 @@
+node_modules/
+npm-debug.log*
+*.tgz
+.DS_Store
+coverage/
+
+# Local working notes stay out of the repo
+AGENTS.md
