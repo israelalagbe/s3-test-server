@@ -26,7 +26,6 @@ const S3TestServer = require('s3-test-server');
 
 const server = new S3TestServer({
   port: 4568,
-  directory: './s3-data', // omit for a temp directory
   configureBuckets: [{ name: 'my-bucket' }],
 });
 

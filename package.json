@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A modern, lightweight Amazon S3 emulator for local development and testing. Compatible with AWS SDK v2 and v3, Signature V2/V4, path-style and virtual-host-style addressing, streaming (aws-chunked) uploads and flexible checksums.",
   "license": "MIT",
+  "author": "Israel Alagbe <israelalagbe53@gmail.com>",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "bin": {
@@ -21,7 +22,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepublishOnly": "npm run lint && npm test"
   },
   "keywords": [
     "s3",
