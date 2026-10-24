@@ -110,32 +110,38 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
 
 ### Server
 
-| Option         | Type               | Default       | Description                                       |
-| -------------- | ------------------ | ------------- | ------------------------------------------------- |
-| `address`      | `string`           | `'localhost'` | Hostname or IP to bind to.                        |
-| `port`         | `number`           | `4568`        | Port to listen on. Use `0` for an ephemeral port. |
-| `key` / `cert` | `string \| Buffer` | none          | TLS key and certificate. Provide both for HTTPS.  |
-| `silent`       | `boolean`          | `false`       | Suppress log output.                              |
+- `address` (string, default `'localhost'`): hostname or IP to bind to.
+- `port` (number, default `4568`): port to listen on. Use `0` for an
+  ephemeral port.
+- `key`, `cert` (string | Buffer): TLS key and certificate. Provide both to
+  serve HTTPS.
+- `silent` (boolean, default `false`): suppress log output.
 
 ### Storage
 
-| Option             | Type                    | Default  | Description                                                                                |
-| ------------------ | ----------------------- | -------- | ------------------------------------------------------------------------------------------ |
-| `directory`        | `string`                | temp dir | Where buckets and objects are stored. Data persists across restarts.                       |
-| `resetOnStart`     | `boolean`               | `false`  | Clear the data directory on every start, so a persistent `directory` begins empty.         |
-| `resetOnClose`     | `boolean`               | `false`  | Delete all bucket data when `close()` is called.                                           |
-| `configureBuckets` | `BucketConfiguration[]` | `[]`     | Buckets to create at startup, each with optional raw XML configs (CORS, website, tagging). |
+- `directory` (string, default: a temporary directory): where buckets and
+  objects are stored. Data persists across restarts.
+- `resetOnStart` (boolean, default `false`): clear the data directory on
+  every start, so a persistent `directory` begins empty.
+- `resetOnClose` (boolean, default `false`): delete all bucket data when
+  `close()` is called.
+- `configureBuckets` (array, default `[]`): buckets to create at startup,
+  each `{ name, configs }` with optional raw XML configs (CORS, website,
+  tagging).
 
 ### Credentials and addressing
 
-| Option                      | Type      | Default           | Description                                                                             |
-| --------------------------- | --------- | ----------------- | --------------------------------------------------------------------------------------- |
-| `accessKeyId`               | `string`  | `'S3TEST'`        | Access key clients must sign with.                                                      |
-| `secretAccessKey`           | `string`  | `'S3TEST'`        | Matching secret key.                                                                    |
-| `region`                    | `string`  | `'us-east-1'`     | Region reported in responses and event records.                                         |
-| `vhostBuckets`              | `boolean` | `true`            | Virtual-host-style addressing (`bucket.localhost`, `bucket.s3.<region>.amazonaws.com`). |
-| `serviceEndpoint`           | `string`  | `'amazonaws.com'` | Root domain recognized for virtual-host-style access.                                   |
-| `allowMismatchedSignatures` | `boolean` | `false`           | Accept well-formed but incorrect signatures.                                            |
+- `accessKeyId` (string, default `'S3TEST'`): access key clients must sign
+  with.
+- `secretAccessKey` (string, default `'S3TEST'`): matching secret key.
+- `region` (string, default `'us-east-1'`): region reported in responses and
+  event records.
+- `vhostBuckets` (boolean, default `true`): virtual-host-style addressing
+  (`bucket.localhost`, `bucket.s3.<region>.amazonaws.com`).
+- `serviceEndpoint` (string, default `'amazonaws.com'`): root domain
+  recognized for virtual-host-style access.
+- `allowMismatchedSignatures` (boolean, default `false`): accept well-formed
+  but incorrect signatures.
 
 Anonymous (unsigned) requests are accepted, as on a public bucket, which is
 handy for plain `fetch`/`curl` in tests. Signed requests are verified against
@@ -143,37 +149,58 @@ handy for plain `fetch`/`curl` in tests. Signed requests are verified against
 
 ## Supported operations
 
-**Service / buckets**: ListBuckets, Create/Delete/HeadBucket,
-GetBucketLocation, ListObjects (v1), ListObjectsV2, ListObjectVersions
-(unversioned mapping), Get/Put/DeleteBucketCors, Get/Put/DeleteBucketWebsite,
-Get/Put/DeleteBucketTagging, GetBucketVersioning, GetBucketEncryption,
-GetBucketNotification/RequestPayment/Logging/Accelerate, ACLs (dummy),
-ListMultipartUploads.
+### Service and buckets
 
-**Objects**: Put/Get/Head/DeleteObject, DeleteObjects, CopyObject
-(COPY/REPLACE directives, copy conditions), POST form uploads
-(`multipart/form-data`, `${filename}` substitution, `success_action_*`),
-Get/Put/DeleteObjectTagging, GetObjectAttributes, object ACLs (dummy),
-Range requests, conditional reads (`If-Match`, `If-None-Match`,
-`If-(Un)Modified-Since`) and **conditional writes** (`If-None-Match: *`,
-`If-Match`), `response-*` header overrides, `Content-MD5` and
-`x-amz-checksum-*` validation (headers or `aws-chunked` trailers).
+- ListBuckets, CreateBucket, DeleteBucket, HeadBucket, GetBucketLocation
+- ListObjects (v1), ListObjectsV2, ListObjectVersions (unversioned mapping)
+- ListMultipartUploads
+- Get/Put/DeleteBucketCors, Get/Put/DeleteBucketWebsite,
+  Get/Put/DeleteBucketTagging
+- GetBucketVersioning, GetBucketEncryption, GetBucketNotification,
+  GetBucketRequestPayment, GetBucketLogging, GetBucketAccelerate
+- Bucket ACLs (dummy responses)
 
-**Multipart**: Create/Abort/CompleteMultipartUpload, UploadPart,
-UploadPartCopy (with `x-amz-copy-source-range`), ListParts, correct
-multipart ETags (`md5-of-md5s-N`), composite and full-object checksums.
+### Objects
 
-**Static website hosting**: index/error documents, folder redirects,
-`x-amz-website-redirect-location`, `RedirectAllRequestsTo`; served for
-anonymous GET/HEAD requests on buckets with a website configuration.
+- PutObject, GetObject, HeadObject, DeleteObject, DeleteObjects
+- CopyObject with COPY/REPLACE directives and copy conditions
+- POST form uploads: `multipart/form-data`, `${filename}` substitution,
+  `success_action_*`
+- Get/Put/DeleteObjectTagging, GetObjectAttributes, object ACLs (dummy)
+- Range requests (`206 Partial Content`)
+- Conditional reads: `If-Match`, `If-None-Match`, `If-(Un)Modified-Since`
+- Conditional writes: `If-None-Match: *`, `If-Match`
+- `response-*` header overrides on GET
+- Integrity validation: `Content-MD5` and `x-amz-checksum-*`
+  (CRC32, CRC32C, CRC64NVME, SHA1, SHA256), from headers or `aws-chunked`
+  trailers
 
-**CORS**: preflight (`OPTIONS`) evaluation and response headers, driven by
-the bucket's CORS configuration.
+### Multipart uploads
 
-Not implemented: bucket versioning (`PutBucketVersioning` with `Enabled`
-returns `NotImplemented`), object locking, lifecycle execution, bucket
-policies/IAM. Per-chunk signatures inside `aws-chunked` bodies are not
-re-verified (the seed signature is).
+- CreateMultipartUpload, UploadPart, UploadPartCopy (with
+  `x-amz-copy-source-range`), CompleteMultipartUpload, AbortMultipartUpload,
+  ListParts
+- Correct multipart ETags (`md5-of-md5s-N`)
+- Composite and full-object checksums
+
+### Static website hosting
+
+- Index and error documents, folder redirects
+- `x-amz-website-redirect-location` and `RedirectAllRequestsTo`
+- Served for anonymous GET/HEAD requests on buckets with a website
+  configuration
+
+### CORS
+
+- Preflight (`OPTIONS`) evaluation and response headers, driven by the
+  bucket's CORS configuration
+
+### Not implemented
+
+- Bucket versioning (`PutBucketVersioning` with `Enabled` returns
+  `NotImplemented`), object locking, lifecycle execution, bucket policies/IAM
+- Per-chunk signatures inside `aws-chunked` bodies are not re-verified (the
+  seed signature is)
 
 ## Events
 
