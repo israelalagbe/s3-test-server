@@ -26,7 +26,13 @@ const WEBSITE_XML = `<WebsiteConfiguration>
 
 before(async () => {
   ctx = await startServer({
-    configureBuckets: [{ name: BUCKET, configs: [CORS_XML, WEBSITE_XML] }],
+    configureBuckets: [
+      {
+        name: BUCKET,
+        configs: [CORS_XML, WEBSITE_XML],
+        acl: 'public-read-write',
+      },
+    ],
   });
 });
 
@@ -213,7 +219,10 @@ test('a persistent directory survives restarts unless resetOnStart is set', asyn
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 's3-restart-'));
   try {
     const first = await startServer({ directory, resetOnClose: false });
-    await fetch(`${first.endpoint}/durable`, { method: 'PUT' });
+    await fetch(`${first.endpoint}/durable`, {
+      method: 'PUT',
+      headers: { 'x-amz-acl': 'public-read-write' },
+    });
     await fetch(`${first.endpoint}/durable/kept.txt`, {
       method: 'PUT',
       body: 'still here',

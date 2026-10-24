@@ -82,7 +82,7 @@ map to 127.0.0.1):
 ```js
 const server = new S3TestServer({
   address: 'aws-s3.local',
-  configureBuckets: [{ name: 'reports' }],
+  configureBuckets: [{ name: 'reports', acl: 'public-read' }],
 });
 
 beforeAll(() => server.run()); // http://aws-s3.local:4568
@@ -142,32 +142,31 @@ All options are optional. `new S3TestServer()` starts an HTTP server on
   recognized for virtual-host-style access.
 - `allowMismatchedSignatures` (boolean, default `false`): accept well-formed
   but incorrect signatures.
-- `defaultBucketAcl` (string, default `'public-read-write'`): ACL applied to
-  buckets without an explicit one. See "Public and private buckets".
+- `defaultBucketAcl` (string, default `'private'`): ACL applied to buckets
+  without an explicit one. See "Public and private buckets".
 
 ## Public and private buckets
 
-Signed requests are verified against `accessKeyId`/`secretAccessKey` and have
-full access. Anonymous (unsigned) requests are checked against the bucket's
-canned ACL:
+Like real S3, buckets are private by default. Signed requests are verified
+against `accessKeyId`/`secretAccessKey` and have full access. Anonymous
+(unsigned) requests are checked against the bucket's canned ACL:
 
-- `public-read-write`: anonymous reads and writes, like a fully public
-  bucket. This is the default (`defaultBucketAcl`), so plain `fetch`/`curl`
-  testing works out of the box.
+- `private` or `authenticated-read` (the default): all anonymous requests
+  get `403 AccessDenied`.
 - `public-read`: anonymous GET/HEAD only; anonymous writes get
   `403 AccessDenied`.
-- `private` or `authenticated-read`: all anonymous requests get
-  `403 AccessDenied`.
+- `public-read-write`: anonymous reads and writes, like a fully public
+  bucket. Set `defaultBucketAcl: 'public-read-write'` to restore the 1.x
+  behavior where unsigned `fetch`/`curl` works everywhere.
 
 Set a bucket's ACL any of the usual ways:
 
 ```js
 // at startup
 new S3TestServer({
-  defaultBucketAcl: 'private', // S3-like: everything needs signing
   configureBuckets: [
     { name: 'assets', acl: 'public-read' },
-    { name: 'internal' }, // inherits defaultBucketAcl
+    { name: 'internal' }, // private, the default
   ],
 });
 ```
@@ -226,7 +225,7 @@ public ones). Object-level ACLs are accepted but not enforced.
 - Index and error documents, folder redirects
 - `x-amz-website-redirect-location` and `RedirectAllRequestsTo`
 - Served for anonymous GET/HEAD requests on buckets with a website
-  configuration
+  configuration; make the bucket `public-read`, as on real S3
 
 ### CORS
 

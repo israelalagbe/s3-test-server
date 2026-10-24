@@ -20,7 +20,9 @@ const {
 async function main() {
   const server = new S3TestServer({
     port: 0, // ephemeral port
-    configureBuckets: [{ name: 'example-bucket' }],
+    // public-read lets the unsigned fetch below work; buckets are
+    // private by default, like real S3
+    configureBuckets: [{ name: 'example-bucket', acl: 'public-read' }],
   });
   server.on('event', ({ Records: [record] }) => {
     console.log(`event: ${record.eventName} ${record.s3.object.key}`);
@@ -58,7 +60,7 @@ async function main() {
   );
   console.log('via SDK:', await got.Body.transformToString());
 
-  // Unsigned reads work too, like a public bucket.
+  // Unsigned reads work on public-read buckets.
   const res = await fetch(`${endpoint}/example-bucket/notes/hello.txt`);
   console.log('via fetch:', await res.text());
 

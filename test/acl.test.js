@@ -18,9 +18,9 @@ let client;
 before(async () => {
   ctx = await startServer({
     configureBuckets: [
-      { name: 'open-bucket' },
+      { name: 'default-bucket' },
+      { name: 'open-bucket', acl: 'public-read-write' },
       { name: 'readonly-bucket', acl: 'public-read' },
-      { name: 'private-bucket', acl: 'private' },
     ],
   });
   client = new S3Client({
@@ -29,7 +29,7 @@ before(async () => {
     credentials: CREDENTIALS,
     forcePathStyle: true,
   });
-  for (const bucket of ['open-bucket', 'readonly-bucket', 'private-bucket']) {
+  for (const bucket of ['default-bucket', 'open-bucket', 'readonly-bucket']) {
     await client.send(
       new PutObjectCommand({ Bucket: bucket, Key: 'file.txt', Body: bucket })
     );
@@ -41,7 +41,27 @@ after(async () => {
   await ctx.close();
 });
 
-test('default buckets allow anonymous reads and writes', async () => {
+test('buckets are private by default, like real S3', async () => {
+  const got = await fetch(`${ctx.endpoint}/default-bucket/file.txt`);
+  assert.strictEqual(got.status, 403);
+  assert.match(await got.text(), /<Code>AccessDenied<\/Code>/);
+
+  const put = await fetch(`${ctx.endpoint}/default-bucket/anon.txt`, {
+    method: 'PUT',
+    body: 'nope',
+  });
+  assert.strictEqual(put.status, 403);
+
+  const list = await fetch(`${ctx.endpoint}/default-bucket/`);
+  assert.strictEqual(list.status, 403);
+
+  const signed = await client.send(
+    new GetObjectCommand({ Bucket: 'default-bucket', Key: 'file.txt' })
+  );
+  assert.strictEqual(await signed.Body.transformToString(), 'default-bucket');
+});
+
+test('public-read-write buckets allow anonymous reads and writes', async () => {
   const put = await fetch(`${ctx.endpoint}/open-bucket/anon.txt`, {
     method: 'PUT',
     body: 'anonymous write',
@@ -69,33 +89,19 @@ test('public-read buckets allow anonymous reads but reject writes', async () => 
   assert.strictEqual(del.status, 403);
 });
 
-test('private buckets reject all anonymous requests but allow signed ones', async () => {
-  const got = await fetch(`${ctx.endpoint}/private-bucket/file.txt`);
-  assert.strictEqual(got.status, 403);
-  assert.match(await got.text(), /<Code>AccessDenied<\/Code>/);
-
-  const list = await fetch(`${ctx.endpoint}/private-bucket/`);
-  assert.strictEqual(list.status, 403);
-
-  const signed = await client.send(
-    new GetObjectCommand({ Bucket: 'private-bucket', Key: 'file.txt' })
-  );
-  assert.strictEqual(await signed.Body.transformToString(), 'private-bucket');
-});
-
 test('CreateBucket honors x-amz-acl and PutBucketAcl updates it', async () => {
   await client.send(
-    new CreateBucketCommand({ Bucket: 'acl-flip', ACL: 'private' })
+    new CreateBucketCommand({ Bucket: 'acl-flip', ACL: 'public-read' })
   );
   await client.send(
     new PutObjectCommand({ Bucket: 'acl-flip', Key: 'f', Body: 'x' })
   );
-  assert.strictEqual((await fetch(`${ctx.endpoint}/acl-flip/f`)).status, 403);
+  assert.strictEqual((await fetch(`${ctx.endpoint}/acl-flip/f`)).status, 200);
 
   await client.send(
-    new PutBucketAclCommand({ Bucket: 'acl-flip', ACL: 'public-read' })
+    new PutBucketAclCommand({ Bucket: 'acl-flip', ACL: 'private' })
   );
-  assert.strictEqual((await fetch(`${ctx.endpoint}/acl-flip/f`)).status, 200);
+  assert.strictEqual((await fetch(`${ctx.endpoint}/acl-flip/f`)).status, 403);
 });
 
 test('GetBucketAcl reflects the canned ACL', async () => {
@@ -108,7 +114,7 @@ test('GetBucketAcl reflects the canned ACL', async () => {
   assert.ok(grants.includes('Group:READ'));
 
   const privateAcl = await client.send(
-    new GetBucketAclCommand({ Bucket: 'private-bucket' })
+    new GetBucketAclCommand({ Bucket: 'default-bucket' })
   );
   assert.deepStrictEqual(
     privateAcl.Grants.map((grant) => grant.Permission),
@@ -116,15 +122,20 @@ test('GetBucketAcl reflects the canned ACL', async () => {
   );
 });
 
-test('defaultBucketAcl: private makes the server S3-like by default', async () => {
-  const strict = await startServer({
-    defaultBucketAcl: 'private',
-    configureBuckets: [{ name: 'locked' }],
+test('defaultBucketAcl can restore the fully public behavior', async () => {
+  const open = await startServer({
+    defaultBucketAcl: 'public-read-write',
+    configureBuckets: [{ name: 'legacy' }],
   });
   try {
-    const anon = await fetch(`${strict.endpoint}/locked/`);
-    assert.strictEqual(anon.status, 403);
+    const put = await fetch(`${open.endpoint}/legacy/anon.txt`, {
+      method: 'PUT',
+      body: 'old behavior',
+    });
+    assert.strictEqual(put.status, 200);
+    const got = await fetch(`${open.endpoint}/legacy/anon.txt`);
+    assert.strictEqual(await got.text(), 'old behavior');
   } finally {
-    await strict.close();
+    await open.close();
   }
 });

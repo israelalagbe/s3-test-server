@@ -103,9 +103,10 @@ declare namespace S3TestServer {
     /** Region reported in responses and event records. Default: `"us-east-1"`. */
     region?: string;
     /**
-     * ACL for buckets without an explicit one. `'private'` rejects anonymous
-     * requests, `'public-read'` allows anonymous GET/HEAD only.
-     * Default: `'public-read-write'` (fully public, like earlier releases).
+     * ACL for buckets without an explicit one. `'private'` (the default, like
+     * real S3) rejects anonymous requests; `'public-read'` allows anonymous
+     * GET/HEAD only; `'public-read-write'` restores the fully public 1.x
+     * behavior.
      */
     defaultBucketAcl?: CannedBucketAcl;
     /** Buckets to create (and configure) before the server starts. */
