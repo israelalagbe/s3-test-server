@@ -2,54 +2,6 @@
 
 A modern, lightweight Amazon S3 emulator for local development and testing.
 
-## Why not just mock?
-
-Mocking the S3 client tests your assumptions about S3, not S3 itself. Stubs
-skip request signing, checksum validation, multipart ETag rules, pagination
-contracts and error shapes, so code that passes mocked tests can still break
-against the real service, and every SDK upgrade silently invalidates the
-stubs.
-
-Before, with a mocked client, nothing below the stub actually runs:
-
-```js
-jest.mock('@aws-sdk/client-s3');
-S3Client.prototype.send = jest.fn().mockResolvedValue({ ETag: '"abc123"' });
-
-test('uploads a report', async () => {
-  await uploadReport('march.csv', csv);
-  expect(S3Client.prototype.send).toHaveBeenCalled(); // proves nothing about S3
-});
-```
-
-After, the same test against `s3-test-server`. Your production code runs
-unmodified and every byte goes over HTTP (`aws-s3.local` is any hostname you
-map to 127.0.0.1):
-
-```js
-const server = new S3TestServer({
-  address: 'aws-s3.local',
-  configureBuckets: [{ name: 'reports' }],
-});
-
-beforeAll(() => server.run()); // http://aws-s3.local:4568
-afterAll(() => server.close());
-
-test('uploads a report and returns its URL', async () => {
-  const url = await uploadReport('march.csv', csv); // real code, real wire
-
-  // the full object URL is real, not invented by a stub
-  expect(url).toBe('http://aws-s3.local:4568/reports/march.csv');
-
-  // and it resolves: read the object back like any HTTP resource
-  const saved = await fetch(url);
-  expect(await saved.text()).toBe(csv.toString());
-});
-```
-
-If `uploadReport` signs incorrectly, streams a corrupt body or mishandles
-multipart thresholds, this test fails, exactly as it would against AWS.
-
 Zero runtime dependencies, a single small package, and wire-level
 compatibility with both old and new S3 clients:
 
@@ -103,6 +55,54 @@ npx s3-test-server -d ./s3-data -p 4568 --configure-bucket my-bucket
 ```
 
 Run `s3-test-server --help` for all flags.
+
+## Why not just mock?
+
+Mocking the S3 client tests your assumptions about S3, not S3 itself. Stubs
+skip request signing, checksum validation, multipart ETag rules, pagination
+contracts and error shapes, so code that passes mocked tests can still break
+against the real service, and every SDK upgrade silently invalidates the
+stubs.
+
+Before, with a mocked client, nothing below the stub actually runs:
+
+```js
+jest.mock('@aws-sdk/client-s3');
+S3Client.prototype.send = jest.fn().mockResolvedValue({ ETag: '"abc123"' });
+
+test('uploads a report', async () => {
+  await uploadReport('march.csv', csv);
+  expect(S3Client.prototype.send).toHaveBeenCalled(); // proves nothing about S3
+});
+```
+
+After, the same test against `s3-test-server`. Your production code runs
+unmodified and every byte goes over HTTP (`aws-s3.local` is any hostname you
+map to 127.0.0.1):
+
+```js
+const server = new S3TestServer({
+  address: 'aws-s3.local',
+  configureBuckets: [{ name: 'reports' }],
+});
+
+beforeAll(() => server.run()); // http://aws-s3.local:4568
+afterAll(() => server.close());
+
+test('uploads a report and returns its URL', async () => {
+  const url = await uploadReport('march.csv', csv); // real code, real wire
+
+  // the full object URL is real, not invented by a stub
+  expect(url).toBe('http://aws-s3.local:4568/reports/march.csv');
+
+  // and it resolves: read the object back like any HTTP resource
+  const saved = await fetch(url);
+  expect(await saved.text()).toBe(csv.toString());
+});
+```
+
+If `uploadReport` signs incorrectly, streams a corrupt body or mishandles
+multipart thresholds, this test fails, exactly as it would against AWS.
 
 ## Options
 
