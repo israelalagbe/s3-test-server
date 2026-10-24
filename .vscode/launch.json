@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run server",
+      "program": "${workspaceFolder}/bin/s3-test-server.js",
+      "args": ["-d", "${workspaceFolder}/.s3-data"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run tests",
+      "runtimeArgs": ["--test"],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
