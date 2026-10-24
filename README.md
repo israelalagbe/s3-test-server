@@ -108,48 +108,6 @@ multipart thresholds, this test fails, exactly as it would against AWS.
 All options are optional. `new S3TestServer()` starts an HTTP server on
 `localhost:4568` backed by a temporary directory.
 
-### Server
-
-- `address` (string, default `'localhost'`): hostname or IP to bind to.
-- `port` (number, default `4568`): port to listen on. Use `0` for an
-  ephemeral port.
-- `key`, `cert` (string | Buffer): TLS key and certificate. Provide both to
-  serve HTTPS.
-- `silent` (boolean, default `false`): suppress log output.
-
-### Storage
-
-- `directory` (string, default: a temporary directory): where buckets and
-  objects are stored. Data persists across restarts.
-- `resetOnStart` (boolean, default `false`): clear the data directory on
-  every start, so a persistent `directory` begins empty.
-- `resetOnClose` (boolean, default `false`): delete all bucket data when
-  `close()` is called.
-- `configureBuckets` (array, default `[]`): buckets to create at startup,
-  each `{ name, configs }` with optional raw XML configs (CORS, website,
-  tagging).
-
-### Credentials and addressing
-
-- `accessKeyId` (string, default `'S3TEST'`): access key clients must sign
-  with.
-- `secretAccessKey` (string, default `'S3TEST'`): matching secret key.
-- `region` (string, default `'us-east-1'`): region reported in responses and
-  event records. When set explicitly, the server behaves like a regional
-  endpoint: SigV4 requests signed for another region are rejected
-  (`AuthorizationHeaderMalformed`), as is a mismatched `LocationConstraint`
-  on CreateBucket. When omitted, any region is accepted.
-- `vhostBuckets` (boolean, default `true`): virtual-host-style addressing
-  (`bucket.localhost`, `bucket.s3.<region>.amazonaws.com`).
-- `serviceEndpoint` (string, default `'amazonaws.com'`): root domain
-  recognized for virtual-host-style access.
-- `allowMismatchedSignatures` (boolean, default `false`): accept well-formed
-  but incorrect signatures.
-- `defaultBucketAcl` (string, default `'private'`): ACL applied to buckets
-  without an explicit one. See "Public and private buckets".
-
-### All options at a glance
-
 ```js
 // bucket configuration documents used below
 const corsXml = `<CORSConfiguration>
@@ -180,30 +138,37 @@ const policyJson = JSON.stringify({
 
 const server = new S3TestServer({
   // server
-  address: 'localhost', // hostname or IP the HTTP server binds to
-  port: 4568, // port to listen on; 0 picks a free ephemeral port
-  key: fs.readFileSync('./key.pem'), // TLS private key; with cert, serves HTTPS
-  cert: fs.readFileSync('./cert.pem'), // TLS certificate for HTTPS
-  silent: false, // true suppresses all request/startup logging
+  address: 'localhost', // hostname or IP the HTTP server binds to (default)
+  port: 4568, // listening port (default); 0 picks a free ephemeral port
+  key: fs.readFileSync('./key.pem'), // TLS private key; give key AND cert to
+  cert: fs.readFileSync('./cert.pem'), // serve HTTPS; omit both for HTTP (default)
+  silent: false, // default; true suppresses request and startup logging
 
   // storage
-  directory: './s3-data', // where buckets and objects live; omit for a temp dir
-  resetOnStart: false, // true clears the data directory on every run()
-  resetOnClose: false, // true deletes all bucket data on close()
+  directory: './s3-data', // where buckets and objects are stored, persisted
+  // across restarts; default: a fresh temporary directory per server
+  resetOnStart: false, // default; true empties the directory on every run()
+  resetOnClose: false, // default; true deletes all bucket data on close()
   configureBuckets: [
-    // buckets created before the server starts
-    { name: 'assets', acl: 'public-read' }, // canned ACL for this bucket
-    { name: 'site', configs: [corsXml, websiteXml, policyJson] }, // raw configs
+    // buckets created before the server starts; default: none
+    { name: 'assets', acl: 'public-read' }, // canned ACL (default: defaultBucketAcl)
+    { name: 'site', configs: [corsXml, websiteXml, policyJson] }, // raw CORS or
+    // website XML documents and bucket-policy JSON, applied at startup
   ],
 
   // credentials and addressing
-  accessKeyId: 'S3TEST', // access key id requests must be signed with
-  secretAccessKey: 'S3TEST', // matching secret for SigV2/SigV4 signatures
-  region: 'eu-west-1', // pins the region: other regions are rejected
-  defaultBucketAcl: 'private', // ACL for buckets created without one
-  vhostBuckets: true, // resolve bucket.localhost-style Host headers
-  serviceEndpoint: 'amazonaws.com', // root domain for virtual-host addressing
-  allowMismatchedSignatures: false, // true accepts wrong (but well-formed) signatures
+  accessKeyId: 'S3TEST', // access key id clients must sign with (default)
+  secretAccessKey: 'S3TEST', // matching SigV2/SigV4 secret key (default)
+  region: 'eu-west-1', // pinning a region rejects requests signed for others;
+  // omit to accept any region (reported as us-east-1)
+  defaultBucketAcl: 'private', // default, like real S3; ACL for buckets without
+  // one: 'private', 'public-read' (anonymous GETs) or 'public-read-write'
+  vhostBuckets: true, // default; resolve bucket.localhost and
+  // bucket.s3.<region>.amazonaws.com style Host headers to the bucket
+  serviceEndpoint: 'amazonaws.com', // default; root domain recognized for
+  // virtual-host-style addressing
+  allowMismatchedSignatures: false, // default; true accepts well-formed but
+  // incorrect signatures (useful with exotic clients)
 });
 ```
 
