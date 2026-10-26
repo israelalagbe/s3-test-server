@@ -447,3 +447,8 @@ Node.js >= 20.
 ## License
 
 MIT
+
+## Links
+
+- npm: [npmjs.com/package/s3-test-server](https://www.npmjs.com/package/s3-test-server)
+- Source and issues: [github.com/israelalagbe/s3-test-server](https://github.com/israelalagbe/s3-test-server)
