@@ -2,12 +2,8 @@
 
 A lightweight Amazon S3 emulator for local development and testing.
 
-Zero runtime dependencies and wire-level compatibility with old and new S3
-clients: AWS SDK for JavaScript v3 (flexible checksums, `aws-chunked`
-streaming, multipart), v2 (SigV4 and legacy SigV2), and any other client that
-signs with Signature V2/V4, header-based or presigned, path-style or
-virtual-host-style. Objects are stored on the filesystem and persist across
-restarts when you point `directory` at a folder of your own.
+Zero runtime dependencies, wire-level compatibility with AWS SDK v2/v3, the
+AWS CLI and anything that signs with SigV2/V4, backed by plain files on disk.
 
 ## Quick start
 
@@ -296,7 +292,11 @@ ignored.
 - ListMultipartUploads
 - Get/Put/DeleteBucketCors, Get/Put/DeleteBucketWebsite,
   Get/Put/DeleteBucketTagging
-- GetBucketVersioning, GetBucketEncryption, GetBucketNotification,
+- Get/PutBucketVersioning (Enabled and Suspended)
+- Get/Put/DeleteBucketLifecycle with lazy execution: expiration by Days or
+  Date, NoncurrentVersionExpiration, ExpiredObjectDeleteMarker
+- Get/PutObjectLockConfiguration (with default retention rules)
+- GetBucketEncryption, GetBucketNotification,
   GetBucketRequestPayment, GetBucketLogging, GetBucketAccelerate
 - Bucket ACLs (canned, enforced for anonymous requests)
 - Bucket policies (anonymous-access subset): Get/Put/DeleteBucketPolicy
@@ -315,6 +315,16 @@ ignored.
 - Integrity validation: `Content-MD5` and `x-amz-checksum-*`
   (CRC32, CRC32C, CRC64NVME, SHA1, SHA256), from headers or `aws-chunked`
   trailers
+
+### Versioning and object lock
+
+- Versioned PutObject/CopyObject/CompleteMultipartUpload with
+  `x-amz-version-id`, GET/HEAD/DELETE by `versionId`
+- Delete markers (created, listed, and removable to restore objects)
+- ListObjectVersions with real versions, markers and `IsLatest`
+- Object lock: GOVERNANCE/COMPLIANCE retention (with
+  `x-amz-bypass-governance-retention`), legal holds, bucket default
+  retention, `ObjectLockEnabledForBucket` on CreateBucket
 
 ### Multipart uploads
 
@@ -336,12 +346,21 @@ ignored.
 - Preflight (`OPTIONS`) evaluation and response headers, driven by the
   bucket's CORS configuration
 
+### Integrity and signatures
+
+- SigV2 and SigV4, header-based and presigned
+- Per-chunk signatures in signed streaming uploads
+  (`STREAMING-AWS4-HMAC-SHA256-PAYLOAD`) are verified against the chain; a
+  tampered chunk fails with `SignatureDoesNotMatch`
+
 ### Not implemented
 
-- Bucket versioning (`PutBucketVersioning` with `Enabled` returns
-  `NotImplemented`), object locking, lifecycle execution, bucket policies/IAM
-- Per-chunk signatures inside `aws-chunked` bodies are not re-verified (the
-  seed signature is)
+- IAM users/roles and policy `Condition` elements (bucket policies support
+  an anonymous-access subset)
+- SSE-KMS semantics (responses always report AES256), storage-class
+  transitions in lifecycle rules, replication, MFA delete
+- The final `x-amz-trailer-signature` of signed-trailer streaming is
+  accepted without re-verification
 
 ## Events
 
